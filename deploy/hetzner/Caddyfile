@@ -1,0 +1,8 @@
+{
+	email admin@post.work
+}
+
+{$APP_HOSTNAME} {
+	encode zstd gzip
+	reverse_proxy withdrawal-portal-app-1:3000
+}

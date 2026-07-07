@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "withdrawal-link": {
+      "name": "Withdrawal link",
+      "settings": {
+        "label": {
+          "label": "Link label"
+        },
+        "style": {
+          "label": "Style"
+        },
+        "alignment": {
+          "label": "Alignment"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "withdrawal-portal-edge",
+  "main": "src/cloudflare/worker.ts",
+  "compatibility_date": "2026-07-07",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "SUPPORT_EMAIL": "matej@post.work"
+  },
+  "routes": [
+    {
+      "pattern": "withdrawals.post.work",
+      "custom_domain": true
+    }
+  ]
+}

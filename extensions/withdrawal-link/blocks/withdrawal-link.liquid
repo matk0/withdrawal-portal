@@ -1,0 +1,99 @@
+{% liquid
+  assign link_label = block.settings.label | default: 'Odstúpiť od zmluvy tu'
+  assign link_alignment = block.settings.alignment | default: 'left'
+  assign link_style = block.settings.style | default: 'link'
+%}
+
+<div class="withdrawal-link-block withdrawal-link-block--{{ link_alignment }}">
+  <a
+    class="withdrawal-link-block__action withdrawal-link-block__action--{{ link_style }}"
+    href="/apps/odstupenie-od-zmluvy"
+  >
+    {{ link_label | escape }}
+  </a>
+</div>
+
+<style>
+  .withdrawal-link-block {
+    margin: 1rem 0;
+  }
+
+  .withdrawal-link-block--left {
+    text-align: left;
+  }
+
+  .withdrawal-link-block--center {
+    text-align: center;
+  }
+
+  .withdrawal-link-block--right {
+    text-align: right;
+  }
+
+  .withdrawal-link-block__action {
+    color: currentColor;
+    display: inline-flex;
+    font: inherit;
+    line-height: 1.2;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .withdrawal-link-block__action--button {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Withdrawal link",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Link label",
+      "default": "Odstúpiť od zmluvy tu"
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "Style",
+      "default": "link",
+      "options": [
+        {
+          "value": "link",
+          "label": "Text link"
+        },
+        {
+          "value": "button",
+          "label": "Outlined button"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

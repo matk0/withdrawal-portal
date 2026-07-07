@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "withdrawal-link": {
+      "name": "Odkaz na odstúpenie",
+      "settings": {
+        "label": {
+          "label": "Text odkazu"
+        },
+        "style": {
+          "label": "Štýl"
+        },
+        "alignment": {
+          "label": "Zarovnanie"
+        }
+      }
+    }
+  }
+}

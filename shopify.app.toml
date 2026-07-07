@@ -1,0 +1,42 @@
+client_id = "70811c0c77c98a8834431a8ccac59756"
+application_url = "https://withdrawals.post.work"
+embedded = true
+name = "Withdrawal Portal"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,write_app_proxy"
+
+[app_proxy]
+url = "https://withdrawals.post.work/apps/odstupenie-od-zmluvy"
+prefix = "apps"
+subpath = "odstupenie-od-zmluvy"
+
+[auth]
+redirect_urls = [ "https://withdrawals.post.work/auth/callback" ]
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = ["app/uninstalled"]
+
+  [[webhooks.subscriptions]]
+  topics = ["app/scopes_update"]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = ["customers/data_request"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = ["customers/redact"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = ["shop/redact"]
+
+[build]
+automatically_update_urls_on_dev = true

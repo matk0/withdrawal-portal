@@ -1,0 +1,27 @@
+name: withdrawal-portal
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: withdrawal_portal
+      POSTGRES_USER: withdrawal_portal
+      POSTGRES_PASSWORD: ${WITHDRAWAL_POSTGRES_PASSWORD:?set WITHDRAWAL_POSTGRES_PASSWORD}
+    volumes:
+      - withdrawal-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U withdrawal_portal -d withdrawal_portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - withdrawal-portal
+
+volumes:
+  withdrawal-postgres-data:
+
+networks:
+  withdrawal-portal:
+    name: withdrawal-portal
+    driver: bridge
