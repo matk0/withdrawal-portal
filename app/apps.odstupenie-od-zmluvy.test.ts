@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   appProxy: vi.fn(),
@@ -48,9 +48,63 @@ vi.mock("./services/withdrawal-token.server", async () => {
   };
 });
 
-import { action } from "./routes/apps.odstupenie-od-zmluvy";
+import { action, loader } from "./routes/apps.odstupenie-od-zmluvy";
 
 describe("withdrawal app proxy action", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("renders an initial Liquid-localized form", async () => {
+    mocks.appProxy.mockResolvedValue({
+      liquid: (html: string) => new Response(html),
+    });
+
+    const request = new Request("https://example-store.myshopify.com/cs-eu/apps/odstupenie-od-zmluvy");
+    const response = await loader({
+      request,
+      context: {},
+      params: {},
+      pattern: "/apps/odstupenie-od-zmluvy",
+      url: new URL(request.url),
+    });
+    const html = await response.text();
+
+    expect(html).toContain("{% case request.locale.iso_code %}");
+    expect(html).toContain('name="locale" value="{{ request.locale.iso_code }}"');
+    expect(html).not.toContain('action="/apps/odstupenie-od-zmluvy"');
+  });
+
+  it("keeps Czech copy through app-proxy form submissions", async () => {
+    mocks.appProxy.mockResolvedValue({
+      admin: {},
+      session: { shop: "example-store.myshopify.com" },
+      liquid: (html: string) => new Response(html),
+    });
+    mocks.ensureShop.mockResolvedValue({
+      id: "shop-id",
+      locale: "sk",
+      cutoffDays: 30,
+    });
+
+    const request = new Request("https://example-store.myshopify.com/cs-eu/apps/odstupenie-od-zmluvy", {
+      method: "POST",
+      body: new URLSearchParams({ intent: "unknown", locale: "cs" }),
+    });
+    const response = await action({
+      request,
+      context: {},
+      params: {},
+      pattern: "/apps/odstupenie-od-zmluvy",
+      url: new URL(request.url),
+    });
+    const html = await response.text();
+
+    expect(html).toContain("Neznámá akce formuláře.");
+    expect(html).toContain("Odstoupení od smlouvy");
+    expect(html).not.toContain("Neznáma akcia formulára.");
+  });
+
   it("renders a controlled received page when confirmation email delivery fails", async () => {
     process.env.LOOKUP_TOKEN_SECRET = "test-secret";
     mocks.appProxy.mockResolvedValue({

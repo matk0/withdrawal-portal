@@ -206,6 +206,34 @@ describe("withdrawal submission", () => {
     expect(email.html).toContain("#1990C6");
   });
 
+  it("uses Czech item quantity labels in Czech confirmation emails", () => {
+    const email = buildConfirmationEmail({
+      requestId: "WDR-20260624-0003",
+      orderName: "#1009",
+      submittedAt: new Date("2026-06-24T10:00:00.000Z"),
+      items: [lineItems[0]],
+      shopName: "Keyana",
+      locale: "cs",
+    });
+
+    expect(email.text).toContain("množství: 2");
+    expect(email.text).not.toContain("množstvo:");
+  });
+
+  it("uses English item quantity labels in English confirmation emails", () => {
+    const email = buildConfirmationEmail({
+      requestId: "WDR-20260624-0004",
+      orderName: "#1010",
+      submittedAt: new Date("2026-06-24T10:00:00.000Z"),
+      items: [lineItems[0]],
+      shopName: "Keyana",
+      locale: "en",
+    });
+
+    expect(email.text).toContain("quantity: 2");
+    expect(email.text).not.toContain("množstvo:");
+  });
+
   it("escapes customer-facing HTML email content", () => {
     const email = buildConfirmationEmail({
       requestId: "WDR-20260624-0002",

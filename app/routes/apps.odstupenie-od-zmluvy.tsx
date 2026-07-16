@@ -18,28 +18,35 @@ import {
   buildConfirmationEmail,
   validateSubmissionSelection,
   type SelectedLineItem,
+  type WithdrawalLocale,
 } from "../services/withdrawal";
 import { signLookupToken, verifyLookupToken } from "../services/withdrawal-token.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { liquid } = await authenticate.public.appProxy(request);
 
-  return liquid(renderLookupPage());
+  return liquid(renderLookupPage({ locale: "liquid" }));
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  const localeFormData = await request.clone().formData();
+  const requestedLocale = withdrawalLocale(localeFormData.get("locale"));
   const { admin, liquid, session } = await authenticate.public.appProxy(request);
 
   if (!admin || !session) {
+    const locale = requestedLocale || "sk";
     return liquid(
       renderLookupPage({
-        error: "Aplikácia nie je pre tento obchod aktívna. Kontaktujte podporu obchodu.",
+        locale,
+        error: routeCopy(locale).inactive,
       }),
     );
   }
 
   const shop = await ensureShop(session.shop);
   const formData = await request.formData();
+  const locale = requestedLocale || withdrawalLocale(shop.locale) || "sk";
+  const copy = routeCopy(locale);
   const intent = stringValue(formData.get("intent"));
 
   if (intent === "lookup") {
@@ -55,8 +62,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (result.status === "not_found" || result.status === "email_mismatch") {
       return liquid(
         renderLookupPage({
-          error:
-            "Objednávku sa nepodarilo overiť. Skontrolujte číslo objednávky a e-mail alebo kontaktujte podporu obchodu.",
+          locale,
+          error: copy.lookupFailed,
         }),
       );
     }
@@ -64,8 +71,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (result.status === "outside_cutoff") {
       return liquid(
         renderLookupPage({
-          notice:
-            "Online lehota na odstúpenie pri tejto objednávke podľa dátumu vytvorenia objednávky uplynula. Ak ide o výnimočný prípad, kontaktujte podporu obchodu.",
+          locale,
+          notice: copy.outsideCutoff,
         }),
       );
     }
@@ -82,6 +89,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return liquid(
       renderSelectionPage({
+        locale,
         orderName: result.order.name,
         email: result.order.email,
         token,
@@ -96,8 +104,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (tokenPayload.shop !== session.shop) {
       return liquid(
         renderLookupPage({
-          error:
-            "Formulár sa nepodarilo overiť pre tento obchod. Skúste ho vyplniť znova.",
+          locale,
+          error: copy.invalidForm,
         }),
       );
     }
@@ -112,8 +120,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (result.status !== "found") {
       return liquid(
         renderLookupPage({
-          error:
-            "Objednávku sa nepodarilo znovu overiť. Skúste formulár vyplniť znova alebo kontaktujte podporu obchodu.",
+          locale,
+          error: copy.recheckFailed,
         }),
       );
     }
@@ -122,17 +130,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let validItems;
     try {
       validItems = validateSubmissionSelection(result.order.lineItems, selectedItems);
-    } catch (error) {
+    } catch {
       return liquid(
         renderSelectionPage({
+          locale,
           orderName: result.order.name,
           email: result.order.email,
           token,
           lineItems: result.order.lineItems,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Vyberte aspoň jednu položku a skontrolujte množstvo.",
+          error: copy.invalidSelection,
         }),
       );
     }
@@ -150,7 +156,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       submittedAt: withdrawalRequest.submittedAt,
       items: validItems,
       shopName: shop.shopName || session.shop,
-      locale: shop.locale === "cs" || shop.locale === "en" ? shop.locale : "sk",
+      locale,
     });
 
     try {
@@ -186,6 +192,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       return liquid(
         renderSuccessPage({
+          locale,
           requestNumber: withdrawalRequest.requestNumber,
           orderName: result.order.name,
           emailFailed: true,
@@ -195,14 +202,55 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return liquid(
       renderSuccessPage({
+        locale,
         requestNumber: withdrawalRequest.requestNumber,
         orderName: result.order.name,
       }),
     );
   }
 
-  return liquid(renderLookupPage({ error: "Neznáma akcia formulára." }));
+  return liquid(renderLookupPage({ locale, error: copy.unknownAction }));
 };
+
+function routeCopy(locale: WithdrawalLocale) {
+  if (locale === "cs") {
+    return {
+      inactive: "Aplikace není pro tento obchod aktivní. Kontaktujte podporu obchodu.",
+      lookupFailed: "Objednávku se nepodařilo ověřit. Zkontrolujte číslo objednávky a e-mail nebo kontaktujte podporu obchodu.",
+      outsideCutoff: "Online lhůta pro odstoupení u této objednávky podle data jejího vytvoření uplynula. Pokud jde o výjimečný případ, kontaktujte podporu obchodu.",
+      invalidForm: "Formulář se pro tento obchod nepodařilo ověřit. Zkuste jej vyplnit znovu.",
+      recheckFailed: "Objednávku se nepodařilo znovu ověřit. Vyplňte formulář znovu nebo kontaktujte podporu obchodu.",
+      invalidSelection: "Vyberte alespoň jednu položku a zkontrolujte množství.",
+      unknownAction: "Neznámá akce formuláře.",
+    };
+  }
+
+  if (locale === "en") {
+    return {
+      inactive: "This application is not active for the store. Contact store support.",
+      lookupFailed: "The order could not be verified. Check the order number and email address or contact store support.",
+      outsideCutoff: "The online withdrawal period for this order has expired based on its creation date. Contact store support if exceptional circumstances apply.",
+      invalidForm: "The form could not be verified for this store. Please complete it again.",
+      recheckFailed: "The order could not be verified again. Complete the form again or contact store support.",
+      invalidSelection: "Select at least one item and check the quantity.",
+      unknownAction: "Unknown form action.",
+    };
+  }
+
+  return {
+    inactive: "Aplikácia nie je pre tento obchod aktívna. Kontaktujte podporu obchodu.",
+    lookupFailed: "Objednávku sa nepodarilo overiť. Skontrolujte číslo objednávky a e-mail alebo kontaktujte podporu obchodu.",
+    outsideCutoff: "Online lehota na odstúpenie pri tejto objednávke podľa dátumu vytvorenia objednávky uplynula. Ak ide o výnimočný prípad, kontaktujte podporu obchodu.",
+    invalidForm: "Formulár sa nepodarilo overiť pre tento obchod. Skúste ho vyplniť znova.",
+    recheckFailed: "Objednávku sa nepodarilo znovu overiť. Skúste formulár vyplniť znova alebo kontaktujte podporu obchodu.",
+    invalidSelection: "Vyberte aspoň jednu položku a skontrolujte množstvo.",
+    unknownAction: "Neznáma akcia formulára.",
+  };
+}
+
+function withdrawalLocale(value: FormDataEntryValue | null): WithdrawalLocale | null {
+  return value === "cs" || value === "en" || value === "sk" ? value : null;
+}
 
 function parseSelectedItems(formData: FormData): SelectedLineItem[] {
   const lineItemIds = formData.getAll("lineItemId").map(stringValue);

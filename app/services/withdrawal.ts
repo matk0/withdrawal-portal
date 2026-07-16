@@ -99,11 +99,12 @@ export function buildConfirmationEmail({
   shopName: string;
   locale: WithdrawalLocale;
 }) {
+  const quantityLabel = locale === "cs" ? "množství" : locale === "en" ? "quantity" : "množstvo";
   const itemLines = items
     .map((item) => {
       const variant = item.variantTitle ? ` (${item.variantTitle})` : "";
       const sku = item.sku ? `, SKU: ${item.sku}` : "";
-      return `- ${item.title}${variant}, množstvo: ${item.quantity}${sku}`;
+      return `- ${item.title}${variant}, ${quantityLabel}: ${item.quantity}${sku}`;
     })
     .join("\n");
   const html = buildConfirmationEmailHtml({
