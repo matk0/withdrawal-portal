@@ -1,13 +1,18 @@
 {% liquid
-  assign link_label = block.settings.label | default: 'Odstúpiť od zmluvy tu'
+  assign link_label = 'withdrawal_link.label' | t
+  assign configured_link_label = block.settings.label | strip
+  if configured_link_label != blank and configured_link_label != 'Odstúpiť od zmluvy tu'
+    assign link_label = configured_link_label
+  endif
   assign link_alignment = block.settings.alignment | default: 'left'
   assign link_style = block.settings.style | default: 'link'
+  assign link_url = routes.root_url | append: '/apps/odstupenie-od-zmluvy' | replace: '//apps', '/apps'
 %}
 
 <div class="withdrawal-link-block withdrawal-link-block--{{ link_alignment }}">
   <a
     class="withdrawal-link-block__action withdrawal-link-block__action--{{ link_style }}"
-    href="/apps/odstupenie-od-zmluvy"
+    href="{{ link_url }}"
   >
     {{ link_label | escape }}
   </a>
@@ -55,8 +60,7 @@
     {
       "type": "text",
       "id": "label",
-      "label": "Link label",
-      "default": "Odstúpiť od zmluvy tu"
+      "label": "Link label"
     },
     {
       "type": "select",
