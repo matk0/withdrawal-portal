@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   buildGlamiFeedXml,
+  createGlamiFeedXmlLoader,
   fetchShopifyProductsJson,
 } from "./glami-feed.server";
 
@@ -209,5 +210,44 @@ describe("GLAMI product feed", () => {
       available: true,
       inventory_management: "shopify",
     });
+  });
+
+  it("reuses generated XML until the feed cache expires", async () => {
+    let now = 1_000;
+    const fetchProducts = vi.fn().mockResolvedValue([
+      {
+        id: 1,
+        title: "Oriental",
+        handle: "oriental",
+        product_type: "Hodvábna šatka",
+        variants: [
+          {
+            id: 101,
+            title: "Default Title",
+            sku: "KEY-ORIENTAL",
+            price: "144.00",
+            available: true,
+            inventory_management: "shopify",
+          },
+        ],
+        images: [{ src: "https://cdn.shopify.com/oriental.jpg" }],
+      },
+    ]);
+    const loadXml = createGlamiFeedXmlLoader({
+      fetchProducts,
+      now: () => now,
+      ttlMs: 900_000,
+    });
+
+    const firstXml = await loadXml({ publicStoreUrl: "https://onebyone.sk" });
+    const cachedXml = await loadXml({ publicStoreUrl: "https://onebyone.sk" });
+
+    expect(cachedXml).toBe(firstXml);
+    expect(fetchProducts).toHaveBeenCalledTimes(1);
+
+    now += 900_000;
+    await loadXml({ publicStoreUrl: "https://onebyone.sk" });
+
+    expect(fetchProducts).toHaveBeenCalledTimes(2);
   });
 });

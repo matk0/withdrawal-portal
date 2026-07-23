@@ -51,6 +51,16 @@ interface FetchShopifyProductsOptions {
   limit?: number;
 }
 
+type LoadGlamiFeedXmlOptions = Omit<BuildGlamiFeedOptions, "products">;
+
+interface CreateGlamiFeedXmlLoaderOptions {
+  fetchProducts?: (
+    options: FetchShopifyProductsOptions,
+  ) => Promise<ShopifyProductJson[]>;
+  now?: () => number;
+  ttlMs?: number;
+}
+
 const GLAMI_CATEGORY_BY_PRODUCT_TYPE: Record<string, string> = {
   "Hodvábna šatka":
     "Glami.sk | Dámske oblečenie a obuv | Dámske doplnky | Šatky a šály",
@@ -87,6 +97,48 @@ export function buildGlamiFeedXml({
     "</SHOP>",
     "",
   ].join("\n");
+}
+
+export function createGlamiFeedXmlLoader({
+  fetchProducts = fetchShopifyProductsJson,
+  now = Date.now,
+  ttlMs = 900_000,
+}: CreateGlamiFeedXmlLoaderOptions = {}) {
+  let cachedFeed:
+    | { key: string; xml: string; expiresAt: number }
+    | undefined;
+  let pendingFeed: { key: string; promise: Promise<string> } | undefined;
+
+  return async (options: LoadGlamiFeedXmlOptions) => {
+    const key = JSON.stringify(options);
+    const currentTime = now();
+
+    if (
+      cachedFeed?.key === key &&
+      cachedFeed.expiresAt > currentTime
+    ) {
+      return cachedFeed.xml;
+    }
+
+    if (pendingFeed?.key === key) {
+      return pendingFeed.promise;
+    }
+
+    const promise = fetchProducts({
+      publicStoreUrl: options.publicStoreUrl,
+    }).then((products) => buildGlamiFeedXml({ ...options, products }));
+    pendingFeed = { key, promise };
+
+    try {
+      const xml = await promise;
+      cachedFeed = { key, xml, expiresAt: now() + ttlMs };
+      return xml;
+    } finally {
+      if (pendingFeed?.promise === promise) {
+        pendingFeed = undefined;
+      }
+    }
+  };
 }
 
 export async function fetchShopifyProductsJson({
