@@ -23,3 +23,18 @@
 		reverse_proxy withdrawal-portal-app-1:3000
 	}
 }
+
+invoices-167-233-158-154.sslip.io {
+	encode zstd gzip
+	reverse_proxy keyana-invoicing-app:8787
+}
+
+gift-wrap-167-233-158-154.sslip.io {
+	encode zstd gzip
+	reverse_proxy keyana-gift-wrap-app:8790
+}
+
+packeta-167-233-158-154.sslip.io {
+	encode zstd gzip
+	reverse_proxy keyana-packeta-app:8793
+}
