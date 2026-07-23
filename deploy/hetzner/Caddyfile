@@ -4,5 +4,22 @@
 
 {$APP_HOSTNAME} {
 	encode zstd gzip
-	reverse_proxy withdrawal-portal-app-1:3000
+
+	handle /glami.xml {
+		reverse_proxy keyana-product-feeds:3000
+	}
+
+	handle /health/feeds/ready {
+		rewrite * /health/ready
+		reverse_proxy keyana-product-feeds:3000
+	}
+
+	handle /health/feeds {
+		rewrite * /health
+		reverse_proxy keyana-product-feeds:3000
+	}
+
+	handle {
+		reverse_proxy withdrawal-portal-app-1:3000
+	}
 }
