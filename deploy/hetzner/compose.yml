@@ -18,6 +18,20 @@ services:
     networks:
       - withdrawal-portal
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - app
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - withdrawal-portal
+
   app:
     image: withdrawal-portal-app:latest
     build:
@@ -65,6 +79,7 @@ services:
       - caddy-config:/config
     networks:
       - withdrawal-portal
+      - keyana-shopify-apps
 
 volumes:
   withdrawal-postgres-data:
@@ -75,3 +90,5 @@ networks:
   withdrawal-portal:
     name: withdrawal-portal
     driver: bridge
+  keyana-shopify-apps:
+    external: true
