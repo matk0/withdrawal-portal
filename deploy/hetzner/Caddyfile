@@ -9,6 +9,10 @@
 		reverse_proxy keyana-product-feeds:3000
 	}
 
+	handle /pinterest.xml {
+		reverse_proxy keyana-product-feeds:3000
+	}
+
 	handle /health/feeds/ready {
 		rewrite * /health/ready
 		reverse_proxy keyana-product-feeds:3000
